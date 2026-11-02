@@ -1,7 +1,8 @@
+import time
 import streamlit as st
 import speech_recognition as sr
 from gtts import gTTS
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 from io import BytesIO
 
 st.set_page_config(page_title="Traductor de viaje", layout="centered")
@@ -52,6 +53,19 @@ acentos = {
     "Irlanda": "ie",
     "Sudáfrica": "co.za",
 }
+
+respaldo = {"es": "es-ES", "en": "en-GB", "ja": "ja-JP", "ko": "ko-KR", "zh-CN": "zh-CN", "bn": "bn-IN"}
+
+
+@st.cache_data(show_spinner=False)
+def traducir(texto, origen, destino):
+    for intento in range(3):
+        try:
+            return GoogleTranslator(source=origen, target=destino).translate(texto)
+        except Exception:
+            time.sleep(2)
+    return MyMemoryTranslator(source=respaldo[origen], target=respaldo[destino]).translate(texto)
+
 
 if "chat" not in st.session_state:
     st.session_state.chat = []
@@ -104,7 +118,7 @@ else:
 
 if texto.strip() != "":
     try:
-        traducido = GoogleTranslator(source=idiomas[entrada][0], target=idiomas[salida][0]).translate(texto)
+        traducido = traducir(texto, idiomas[entrada][0], idiomas[salida][0])
         audio = BytesIO()
         gTTS(traducido, lang=idiomas[salida][0], tld=acentos[acento], slow=lenta).write_to_fp(audio)
         st.session_state.chat.append({
